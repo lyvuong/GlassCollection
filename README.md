@@ -259,10 +259,34 @@ categories, helper reporting threshold, mileage rate, photo retention days, emai
 
 ## Install on a phone
 
-- **iPhone / iPad (Safari):** open the site in **Safari**, tap **Share**, then **Add to Home Screen**. iOS shows no install
-  banner. Allow **Camera** and **Location** on the first pickup photo. Photos and check-offs queue offline.
-- **Android (Chrome):** menu -> **Install app**.
-- If Google sign-in misbehaves inside an installed iOS app, sign in with email and password instead.
+The app is a PWA: after installing it opens full screen like a native app, has its own icon, and keeps working with a
+weak or missing signal (check-offs and photos queue and upload later). The same instructions are shown in the app on the
+sign-in screen.
+
+### iPhone and iPad (Safari)
+1. Open your site in **Safari**. On iOS, installing is done from Safari's Share menu; iOS shows no install banner.
+2. Tap the **Share** button (square with an up arrow; in the address bar or the bottom toolbar).
+3. Scroll down and tap **Add to Home Screen**. Keep the name **Glass** (or rename it) and tap **Add**.
+4. Open the app from the new home-screen icon, sign in, and allow **Camera** and **Location** when the first
+   photo is taken.
+
+Notes: iOS 16.4+ also allows installing from other browsers' Share menus. If Google sign-in fails inside the installed
+app, use email and password. To get a new icon after a logo change, delete the shortcut and add it again.
+
+### Android (Chrome)
+1. Open your site in **Chrome**.
+2. Tap the **⋮** menu, then **Install app** (some versions say **Add to Home screen**). You may also see an
+   install banner at the bottom.
+3. Tap **Install**. The app appears in your app drawer and home screen.
+4. Open it, sign in, and allow **Camera** and **Location** on the first photo.
+
+### Desktop (Chrome / Edge)
+Click the install icon at the right end of the address bar, or menu -> **Install Glass Collection**.
+
+### After installing
+- Always launch from the home-screen icon so check-offs run in the installed app.
+- Updates arrive automatically: when a new version is deployed you will see a banner with **Update now**.
+- Helpers only need the link, an invite from the owner, and these steps; no app store is involved.
 
 ## Versions and updates
 

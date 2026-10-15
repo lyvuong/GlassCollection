@@ -5,6 +5,7 @@ import {
 } from 'firebase/auth';
 import { getAuthInstance } from '../lib/firebase';
 import { useAuth } from '../auth';
+import InstallHelp from '../components/InstallHelp';
 
 export default function Login() {
   const { user, refresh, signOut } = useAuth();
@@ -72,6 +73,7 @@ export default function Login() {
         </>
       )}
       {msg && <p className="error">{msg}</p>}
+      <InstallHelp />
     </div>
   );
 }
