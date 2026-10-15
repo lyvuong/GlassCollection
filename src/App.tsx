@@ -65,6 +65,9 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <footer className="page muted" style={{ textAlign: 'center', fontSize: 12 }}>
+        v{__APP_VERSION__} · {__BUILD_SHA__}
+      </footer>
     </>
   );
 }

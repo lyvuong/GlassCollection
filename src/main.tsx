@@ -6,6 +6,7 @@ import './styles.css';
 import App from './App';
 import { AuthProvider } from './auth';
 import { firebaseConfigured } from './lib/firebase';
+import UpdatePrompt from './UpdatePrompt';
 
 function Unconfigured() {
   return (
@@ -23,6 +24,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <AuthProvider>
           <App />
+          <UpdatePrompt />
         </AuthProvider>
       </BrowserRouter>
     ) : (

@@ -255,6 +255,19 @@ Skip this step and use **Reports → PDF / Share** to send statements manually.
 In-app **Settings** (owner): business name, default fee, currency, statement footer, payment instructions, expense
 categories, helper reporting threshold, mileage rate, photo retention days, email subject/intro, contact email.
 
+## Versions and updates
+
+- **Automatic versioning**: [release-please](https://github.com/googleapis/release-please) reads
+  [Conventional Commits](https://www.conventionalcommits.org/) on `main` (`fix:` bumps patch, `feat:` bumps minor,
+  `feat!:` bumps major) and keeps a release PR open that updates `package.json` and `CHANGELOG.md`. Merging it creates a
+  tag and a GitHub release. One-time: GitHub repo -> Settings -> Actions -> General -> enable
+  *Allow GitHub Actions to create and approve pull requests*.
+- **Version shown in the app**: the footer shows `v<version> · <commit>` (from `package.json` and the deployed commit).
+- **In-app update prompt**: the PWA checks for a new deployment every 30 minutes and whenever it returns to the
+  foreground, then shows *A new version is available* with **Update now / Later**. It never reloads by itself, so a helper
+  in the middle of a pickup does not lose queued photos or check-offs.
+- **CI**: `.github/workflows/ci.yml` runs tests and a build on every push and pull request.
+
 ## Local development
 
 ```bash
