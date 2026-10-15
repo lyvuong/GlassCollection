@@ -1,42 +1,345 @@
 # Glass Collection
 
-A mobile-first PWA for a neighborhood glass-recycling pickup service: subscriber list, optimized pickup routes,
-field check-off with photo proof, payments, helper pay, expenses, monthly statements and tax-ready reports.
+**A mobile-first PWA for running a neighborhood glass-recycling pickup service** — subscriber list, optimized pickup
+routes, photo proof at every stop, payments, helper pay, expenses, monthly statements and tax-ready reports.
 
-One deployment = one family/business. To run your own, use this repo as a template and follow the setup below.
+[![Live app](https://img.shields.io/badge/live-glasscollection.pages.dev-F38020?logo=cloudflarepages&logoColor=white)](https://glasscollection.pages.dev)
+[![Deploys on Cloudflare Pages](https://img.shields.io/badge/hosting-Cloudflare%20Pages-F38020?logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
+[![Firebase](https://img.shields.io/badge/backend-Firebase%20Spark-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![PWA](https://img.shields.io/badge/PWA-installable%20%2B%20offline-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+[![Tests](https://img.shields.io/badge/tests-Vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Last commit](https://img.shields.io/github/last-commit/lyvuong/GlassCollection)](https://github.com/lyvuong/GlassCollection/commits/main)
+[![Stars](https://img.shields.io/github/stars/lyvuong/GlassCollection?style=flat)](https://github.com/lyvuong/GlassCollection/stargazers)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Free to run](https://img.shields.io/badge/running%20cost-%240%20(typical)-brightgreen)](#cost)
 
-## What it does
-- **Subscribers** grouped by **neighborhood** and **route** (split a neighborhood among helpers).
-- **Plan a pickup day**: geocodes addresses, optimizes visiting order (Google Routes API, or a built-in optimizer when no key).
-- **Collect screen** (helpers see only their routes): navigate, take a photo (time + GPS stamped), mark *Collected / Nothing out / Skip*. Works offline and syncs later.
-- **History map**: stops colored by outcome, numbered in visit order, with photos.
-- **Payments, expenses, helper payouts**, profit and loss, annual CSV/PDF.
-- **Email** pickup notices (with the subscriber's own photos) and monthly statement PDFs.
+> One deployment = one family or business. To run your own, fork this repo and follow
+> [Set up your own copy](#set-up-your-own-copy). There is no shared multi-tenant server and no data leaves your own
+> Firebase project.
 
-## Setup
-1. **Firebase** (free Spark plan): create a project, enable *Authentication* (Google and/or Email/Password) and *Firestore*.
-   Add a Web app and copy the config into `.env.local` (see `.env.example`).
-2. **Owner email**: edit `OWNER_EMAIL()` in `firestore.rules`, then deploy rules:
-   `npm i -g firebase-tools && firebase login && firebase deploy --only firestore --project <your-project-id>`.
-   That person's first verified sign-in becomes the owner. Others are invited from **Settings → Team**.
-3. **Google Maps (optional)**: in a *separate* Google Cloud project with billing, enable Geocoding API and Routes API,
-   create a key restricted by HTTP referrer, and set `VITE_GOOGLE_MAPS_KEY`. Without it the app uses OpenStreetMap
-   geocoding and a local route optimizer.
-4. **Hosting**: Cloudflare Pages → Connect to Git → build `npm run build`, output `dist`. Add the `VITE_*` variables.
-   Add your Pages domain in Firebase Auth → Settings → Authorized domains.
-5. **Email (optional)**: create a Resend account and verify a sender domain/address. In Pages add *encrypted* variables
-   `EMAIL_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `FIREBASE_PROJECT_ID`, optional `DAILY_SEND_CAP`.
-   The Function in `functions/api/send-email.ts` verifies the caller and only mails the subscriber's stored address.
+---
 
-## Develop
+## Contents
+- [The problem it solves](#the-problem-it-solves)
+- [Features](#features)
+- [How a pickup day works](#how-a-pickup-day-works)
+- [Roles and permissions](#roles-and-permissions)
+- [Set up your own copy](#set-up-your-own-copy)
+- [Configuration reference](#configuration-reference)
+- [Local development](#local-development)
+- [Architecture](#architecture)
+- [Data model](#data-model)
+- [Cost](#cost)
+- [Security and privacy](#security-and-privacy)
+- [Troubleshooting](#troubleshooting)
+- [Limitations](#limitations)
+
+---
+
+## The problem it solves
+
+A family collects glass from neighbors once or twice a month. Each subscriber pays a flat monthly fee (default $20)
+**whether or not they put glass out**. The family needs to know who subscribes, drive the shortest route, prove what
+happened at each house, track who paid, pay helpers, track expenses, and produce statements and tax numbers at year end.
+This app does all of that from a phone, with no spreadsheet.
+
+## Features
+
+### Subscribers
+- Customer list with search and filters by neighborhood, route and status (active / paused).
+- Name, address, phone, email, notes (for example "bin on left of garage"), monthly fee override, start date.
+- Address geocoding on save (Google Geocoding when a key is set, otherwise OpenStreetMap Nominatim).
+- **Pause and resume** as month ranges, so a vacation month is not billed.
+- Per-subscriber pickup log: date, time, outcome and photos, handy for "you missed me" disputes.
+- Email preferences: opt in/out, and frequency (every pickup, monthly only, statement only).
+
+### Neighborhoods and routes
+- Serve **several neighborhoods** from one deployment, each with its own home base, recycling-center address
+  and default fee.
+- Split a neighborhood into **routes** (for example subscribers 1–10 for one helper, 11–15 for another) and move
+  subscribers between routes in bulk.
+
+### Pickup planning
+- Choose neighborhood and date, select who is on the list (active subscribers by default).
+- **Route optimization**: Google Routes API with waypoint optimization (chunked to the 25-stop API limit), or a
+  built-in nearest-neighbor + 2-opt optimizer when no Maps key is configured.
+- Each route is assigned to a team member, and can be reassigned mid-day if a helper is out.
+- One-tap **Navigate** deep link to Google Maps or Apple Maps for each stop.
+
+### Collection day (mobile-first, works offline)
+- Big stop cards in visiting order with address, notes and progress bar.
+- **Photo at every stop**: opens the phone camera, compresses the image in the browser, and stamps it with time,
+  GPS position (one reading, no continuous tracking) and who took it.
+- One tap outcome: **Collected**, **Nothing out** or **Skip**, with an optional note.
+- Offline-first: check-offs and photos queue locally and upload when signal returns.
+- Helpers see only the routes assigned to them.
+
+### History and proof of service
+- Pickup history list by date and neighborhood.
+- Map (Leaflet + OpenStreetMap) with stops colored by outcome, numbered in actual visit order, connected by a line,
+  with the planned order overlaid for comparison.
+- Flags check-offs made far from the subscriber's address ("far from address").
+- Photo thumbnails per stop, loaded on demand.
+- Close a day to hide it from helpers, and prune photos older than your retention setting.
+
+### Money
+- **Payments**: month grid of subscribers × paid/unpaid, record amount, method and date, running balances.
+- **Billing rule**: every active subscriber owes the fee each month, collected or not; pauses and start dates decide
+  which months are billed.
+- **Expenses**: quick-add ledger with category (fuel, recycling fees, supplies, and so on), neighborhood, payee,
+  note and receipt reference.
+- **Helper pay**: pay rules per member (flat per day, per stop, or hourly). Closing a pickup day suggests the payout;
+  you confirm or edit it.
+- **Profit and loss**: monthly and annual, per neighborhood or combined, cash basis.
+
+### Reports and statements
+- Monthly **statement PDF** per subscriber: pickups that month with outcomes, fee, payments received, balance due,
+  payment instructions. Download, or send through the phone share sheet.
+- **Annual summary** as CSV and PDF: income, expenses by category, helper totals, and a flag for helpers whose
+  yearly total reaches your reporting threshold (for example the US 1099-NEC level).
+- Bookkeeping aid only, not tax advice.
+
+### Email to subscribers (optional)
+- **Pickup notice** after a pickup day: date and time, outcome, note, and *that subscriber's own photos* inline.
+- **Monthly statement** email with the PDF attached.
+- Review screen: untick recipients, edit the note, then send; per-recipient sent/failed status and a log to avoid
+  accidental duplicates.
+- Editable subject and intro templates with merge fields `{{name}}`, `{{date}}`, `{{balance}}`.
+- Sent by a small Cloudflare Pages Function through Resend. It checks the caller's Firebase login and role, only
+  mails the address stored for that subscriber, and enforces a daily cap.
+
+### Team and platform
+- Google sign-in or email/password with email verification.
+- Roles: owner, editor, helper (see below). Invite by email from Settings → Team.
+- Installable PWA with offline app shell and cached map tiles.
+- Real-time sync across everyone's devices.
+
+## How a pickup day works
+
+1. **Plan**: Plan → choose neighborhood and date → Optimize → assign each route to a team member.
+2. **Collect**: helpers open **Collect** on their phones, tap Navigate, snap the curb photo, and tap the outcome.
+3. **Review**: History shows the day's map and photos; Close the day to record suggested helper payouts.
+4. **Notify**: Notices → select the pickup day → send each subscriber their own photo and outcome.
+5. **Bill**: Payments → record what came in. Reports → statements and monthly P&L.
+6. **Year end**: Reports → annual CSV/PDF for your tax preparer.
+
+## Roles and permissions
+
+| | Owner | Editor | Helper |
+|---|:--:|:--:|:--:|
+| Collect screen for assigned routes | ✅ | ✅ | ✅ |
+| Subscribers, neighborhoods, routes, planning | ✅ | ✅ | – |
+| Payments, expenses, payouts, reports, emails | ✅ | ✅ | – |
+| Settings, team and invites | ✅ | – | – |
+| See other routes' stops and photos | ✅ | ✅ | – |
+
+These are enforced by Firestore security rules, not only by the UI.
+
+---
+
+## Set up your own copy
+
+Time: about 45 minutes. You need a GitHub account, a Google account, and a Cloudflare account (all free). A credit
+card is needed only if you enable Google Maps; the app works without it.
+
+### 1. Fork the repo
+Click **Fork** (or **Use this template** if enabled) on https://github.com/lyvuong/GlassCollection and clone your copy:
+
 ```bash
+git clone https://github.com/<you>/GlassCollection.git
+cd GlassCollection
 npm install
-npm run dev     # needs .env.local
-npm test        # billing, pay and route logic
-npm run build
 ```
 
-## Notes
-- Photos are compressed in the browser and stored in Firestore (Firebase Storage needs the paid plan). Use *Remove old photos* on a pickup day to apply the retention setting.
-- Reports are a bookkeeping aid, not tax advice.
-- Never commit `.env.local` or API keys.
+Requires Node 20 (`.nvmrc`).
+
+### 2. Create the Firebase project (free Spark plan)
+1. [Firebase console](https://console.firebase.google.com) → **Add project** (skip Analytics).
+2. **Build → Authentication → Get started** → enable **Google** and **Email/Password**.
+3. **Build → Firestore Database → Create database** → production mode, pick a nearby location.
+4. **Project settings → Your apps → Web (`</>`)** → register an app and copy the config values.
+
+> Do **not** upgrade this project or link a billing account to it. Keeping it on Spark guarantees you are never charged.
+
+### 3. Set the owner and deploy security rules
+1. Open `firestore.rules` and change `owner@example.com` in `OWNER_EMAIL()` to the email the owner will sign in with.
+   That person's first **verified** sign-in becomes the owner.
+2. Deploy rules and indexes:
+
+```bash
+npm i -g firebase-tools
+firebase login
+firebase deploy --only firestore --project <your-firebase-project-id>
+```
+
+### 4. Configure local environment (optional, for development)
+```bash
+cp .env.example .env.local     # then fill in the VITE_FIREBASE_* values
+npm run dev
+```
+`.env.local` is git-ignored. Never commit keys.
+
+### 5. Host on Cloudflare Pages
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → select your fork.
+   If the branch list is empty, grant the Cloudflare GitHub app access to the repo
+   (GitHub → Settings → Applications → Cloudflare Workers and Pages → Configure).
+2. Build settings:
+
+   | Setting | Value |
+   |---|---|
+   | Production branch | `main` |
+   | Build command | `npm run build` |
+   | Build output directory | `dist` |
+
+3. **Settings → Environment variables (Production)**: add `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
+   `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID` (and `VITE_GOOGLE_MAPS_KEY` if used).
+4. Redeploy once after saving variables (Vite reads them at build time). Every later push to `main` deploys automatically.
+5. Back in Firebase: **Authentication → Settings → Authorized domains → Add** your `*.pages.dev` domain
+   (and custom domain, if any). Google sign-in fails without this.
+
+### 6. First run
+1. Open the site and sign in with the owner email (verify the email if you used a password).
+2. **Settings**: business name, default fee, payment instructions, expense categories.
+3. **Areas**: add a neighborhood, enter home base and recycling-center addresses, click *Locate addresses*,
+   and add routes if you will split the work.
+4. **Customers**: add subscribers (or import by hand), confirm each geocoded pin.
+5. **Settings → Team**: invite family and helpers by email, with role and (for helpers) their routes.
+6. **Plan** a pickup day, then **Collect** from a phone and install the PWA (browser menu → Add to Home Screen).
+
+### 7. Optional: Google Maps (better optimization and geocoding)
+1. Create a **separate** Google Cloud project (not the Firebase one) and attach billing.
+2. Enable **Geocoding API** and **Routes API**.
+3. Create an API key, restrict it by **HTTP referrer** to your `pages.dev` / custom domain, and restrict it to those
+   two APIs. Add a budget alert.
+4. Set `VITE_GOOGLE_MAPS_KEY` in Cloudflare and redeploy.
+
+Typical usage (geocode once per new subscriber, a few route calls per pickup day) stays inside Google's free monthly
+credit. Without a key the app uses OpenStreetMap geocoding and the built-in optimizer.
+
+### 8. Optional: email notices and statements
+1. Create a [Resend](https://resend.com) account and verify a sender address or domain (SPF/DKIM).
+2. In Cloudflare Pages → Settings → Variables and secrets, add as **encrypted** (not `VITE_`):
+
+   | Variable | Value |
+   |---|---|
+   | `EMAIL_API_KEY` | Resend API key |
+   | `EMAIL_FROM` | `Glass Pickup <pickup@yourdomain.com>` |
+   | `EMAIL_REPLY_TO` | your family contact address |
+   | `FIREBASE_PROJECT_ID` | same as the Firebase project id |
+   | `DAILY_SEND_CAP` | optional, default 100 |
+
+3. Redeploy. Use **Notices** to send; do a test to yourself first.
+
+Skip this step and use **Reports → PDF / Share** to send statements manually.
+
+---
+
+## Configuration reference
+
+| Variable | Where | Required | Purpose |
+|---|---|:--:|---|
+| `VITE_FIREBASE_API_KEY` | build | ✅ | Firebase web config (public value) |
+| `VITE_FIREBASE_AUTH_DOMAIN` | build | ✅ | Firebase web config |
+| `VITE_FIREBASE_PROJECT_ID` | build | ✅ | Firebase web config |
+| `VITE_FIREBASE_APP_ID` | build | ✅ | Firebase web config |
+| `VITE_GOOGLE_MAPS_KEY` | build | – | Geocoding + route optimization |
+| `EMAIL_API_KEY` | Pages secret | – | Resend key for email |
+| `EMAIL_FROM` | Pages secret | – | Sender address |
+| `EMAIL_REPLY_TO` | Pages secret | – | Reply-to address |
+| `FIREBASE_PROJECT_ID` | Pages secret | – | Lets the function verify logins |
+| `DAILY_SEND_CAP` | Pages secret | – | Max emails/day (default 100) |
+
+In-app **Settings** (owner): business name, default fee, currency, statement footer, payment instructions, expense
+categories, helper reporting threshold, mileage rate, photo retention days, email subject/intro, contact email.
+
+## Local development
+
+```bash
+npm install
+npm run dev       # dev server, needs .env.local
+npm test          # billing, pay and route logic (Vitest)
+npm run build     # type-check + production build into dist/
+npm run preview   # serve the production build
+npm run icons     # regenerate PWA icons
+```
+
+## Architecture
+
+```
+Browser (React PWA, Leaflet map, jsPDF)
+   │  Firebase Auth + Firestore (offline cache, real-time sync, role rules)
+   │  Google Geocoding / Routes   (optional, from the browser, referrer-restricted key)
+   └─ POST /api/send-email ──► Cloudflare Pages Function ──► Resend
+                               (verifies Firebase ID token, role,
+                                recipient == stored subscriber email, daily cap)
+```
+
+| Area | Choice |
+|---|---|
+| UI | Vite, React 18, TypeScript, React Router |
+| PWA | vite-plugin-pwa (offline shell, OSM tile cache) |
+| Data | Firestore with persistent local cache |
+| Auth | Firebase Auth (Google, email/password) |
+| Maps | Leaflet + OpenStreetMap; Google Maps Platform optional |
+| PDFs | jsPDF + jspdf-autotable, generated in the browser |
+| Email | Cloudflare Pages Function + Resend |
+| Hosting | Cloudflare Pages, auto-deploy from GitHub `main` |
+
+Key folders: `src/pages` (screens), `src/lib` (billing, pay, geo, routing, pdf, mailer, data),
+`functions/api/send-email.ts` (email function), `firestore.rules` (security).
+
+## Data model
+
+Firestore collections at the root of your project:
+`members`, `invites`, `settings/app`, `neighborhoods`, `routes`, `customers`, `collections/{id}/stops/{customerId}`
+(with a `photos` subcollection), `payments`, `expenses`, `payouts`, `emails`.
+
+## Cost
+
+| Service | Plan | Typical monthly cost |
+|---|---|---|
+| Firebase (Auth + Firestore) | Spark (free) | $0 |
+| Cloudflare Pages + Functions | Free | $0 |
+| Google Maps Platform | Free monthly credit, billing account required | $0 at this volume (optional) |
+| Resend | Free tier | $0 (a sender domain is about $10/year) |
+
+Photos are compressed to roughly 100–250 KB and stored in Firestore (Firebase Storage needs a paid plan). Retention
+pruning keeps usage far below Spark's 1 GiB. If you outgrow it, the photo store can move to Cloudflare R2.
+
+## Security and privacy
+
+- Everything is gated by Firestore rules: only members read or write; helpers see only their assigned routes' stops and
+  photos and cannot see payments or reports; only the owner changes team and settings.
+- Firebase web config values are public by design; security comes from Auth + rules. Restrict your Maps key by referrer.
+- Server secrets live only in Cloudflare encrypted variables. `.env.local` is git-ignored: **never commit keys**.
+- The email function cannot be used as an open relay: it needs a valid owner/editor login, sends only to the stored
+  subscriber address, and has a daily cap.
+- Photos show the curb or bin, not people. Tell subscribers at sign-up that curbside photos are taken and emailed as
+  proof of service. Photos are visible only to members with access to that route.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| "Firebase is not configured" | `VITE_FIREBASE_*` missing at build time; add in Cloudflare and redeploy |
+| Google sign-in popup error | Add your domain to Firebase → Authentication → Authorized domains |
+| "Access denied" after sign-in | `OWNER_EMAIL()` doesn't match, rules not deployed, or the email is not verified; for others, add an invite |
+| Cloudflare branch dropdown empty | Re-authorize the Cloudflare GitHub app for the repo |
+| Optimizer says no key | Expected without `VITE_GOOGLE_MAPS_KEY`; the local optimizer is used |
+| Email send fails | Check the Pages secrets, sender verification in Resend, and the subscriber has an email and opt-in |
+| Helpers see nothing | Assign them routes in Settings → Team and assign the route on the pickup day |
+
+## Limitations
+
+- Single tenant by design: each family deploys its own copy.
+- Not yet verified against a live Firebase project in automated tests; Firestore rules have no emulator test suite yet.
+- Email, Google Maps and offline photo sync need real accounts and a phone to exercise fully.
+- Reports are a bookkeeping aid, not tax advice. Confirm reporting thresholds with a tax professional.
+
+## Contributing
+
+Issues and pull requests are welcome. Run `npm test` and `npm run build` before opening a PR.
+Released under the [MIT License](LICENSE).
