@@ -1,0 +1,103 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // EDIT THIS before deploying: the email address of the person who owns this deployment.
+    // That person's first (verified) sign-in creates the owner account.
+    function OWNER_EMAIL() { return 'lyvuong@gmail.com'; }
+
+    function signedIn() { return request.auth != null; }
+    function verified() { return request.auth.token.email_verified == true; }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function memberPath() { return /databases/$(database)/documents/members/$(request.auth.uid); }
+    function isMember() { return signedIn() && exists(memberPath()); }
+    function me() { return get(memberPath()).data; }
+    function isOwner() { return isMember() && me().role == 'owner'; }
+    function isEditor() { return isMember() && (me().role == 'owner' || me().role == 'editor'); }
+    function isHelper() { return isMember() && me().role == 'helper'; }
+    function helperRoute(routeId) { return isHelper() && routeId in me().routeIds; }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    match /members/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isEditor());
+      allow list: if isEditor();
+      allow create: if signedIn() && request.auth.uid == uid && verified()
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'routeIds'])
+        && request.resource.data.email.lower() == myEmail()
+        && (
+          (myEmail() == OWNER_EMAIL().lower() && request.resource.data.role == 'owner')
+          || (exists(/databases/$(database)/documents/invites/$(myEmail()))
+              && request.resource.data.role == get(/databases/$(database)/documents/invites/$(myEmail())).data.role
+              && request.resource.data.routeIds == get(/databases/$(database)/documents/invites/$(myEmail())).data.routeIds)
+        );
+      allow update, delete: if isOwner();
+    }
+
+    match /invites/{email} {
+      allow get: if signedIn() && email == myEmail();
+      allow list: if isOwner();
+      allow write: if isOwner();
+    }
+
+    match /settings/{id} {
+      allow read: if isMember();
+      allow write: if isOwner();
+    }
+
+    match /neighborhoods/{id} {
+      allow read: if isMember();
+      allow write: if isOwner();
+    }
+
+    match /routes/{id} {
+      allow read: if isMember();
+      allow write: if isOwner();
+    }
+
+    match /customers/{id} {
+      allow read: if isEditor() || (isHelper() && resource.data.routeId in me().routeIds);
+      allow write: if isEditor();
+    }
+
+    match /collections/{cid} {
+      allow read: if isEditor() || (isHelper() && resource.data.routeIds.hasAny(me().routeIds));
+      allow write: if isEditor();
+
+      match /stops/{customerId} {
+        allow read: if isEditor() || helperRoute(resource.data.routeId);
+        allow create, delete: if isEditor();
+        allow update: if isEditor()
+          || (helperRoute(resource.data.routeId)
+              && onlyChanges(['status', 'note', 'checkedAt', 'checkedBy', 'checkedLat', 'checkedLng', 'accuracy']));
+
+        match /photos/{photoId} {
+          allow read: if isEditor()
+            || helperRoute(get(/databases/$(database)/documents/collections/$(cid)/stops/$(customerId)).data.routeId);
+          allow create: if isEditor()
+            || (helperRoute(get(/databases/$(database)/documents/collections/$(cid)/stops/$(customerId)).data.routeId)
+                && request.resource.data.takenBy == request.auth.uid);
+          allow delete: if isEditor();
+        }
+      }
+    }
+
+    // Used by the history map and subscriber pickup log (collection-group reads).
+    match /{path=**}/stops/{customerId} {
+      allow read: if isEditor() || (isHelper() && resource.data.routeId in me().routeIds);
+    }
+
+    match /payments/{id} {
+      allow read, write: if isEditor();
+    }
+    match /expenses/{id} {
+      allow read, write: if isEditor();
+    }
+    match /payouts/{id} {
+      allow read: if isEditor() || (isMember() && resource.data.memberUid == request.auth.uid);
+      allow write: if isEditor();
+    }
+    match /emails/{id} {
+      allow read, write: if isEditor();
+    }
+  }
+}
