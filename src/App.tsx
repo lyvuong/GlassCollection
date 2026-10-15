@@ -36,7 +36,7 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <strong>{settings.businessName}</strong>
+        <span className="brand"><img src="/icon.svg" alt="" width="30" height="30" /><strong>{settings.businessName}</strong></span>
         <nav>
           {links.map(([to, label]) => (
             <NavLink key={to} to={to} end={to === '/'}>{label}</NavLink>
@@ -66,7 +66,7 @@ export default function App() {
         </Routes>
       </main>
       <footer className="page muted" style={{ textAlign: 'center', fontSize: 12 }}>
-        v{__APP_VERSION__} · {__BUILD_SHA__}
+        v{__APP_VERSION__} Â· {__BUILD_SHA__}
       </footer>
     </>
   );

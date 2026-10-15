@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   GoogleAuthProvider, createUserWithEmailAndPassword, sendEmailVerification,
-  signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail,
+  signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, sendPasswordResetEmail,
 } from 'firebase/auth';
 import { getAuthInstance } from '../lib/firebase';
 import { useAuth } from '../auth';
@@ -21,6 +21,19 @@ export default function Login() {
     setBusy(false);
   }
 
+  // iOS installed PWAs often block the Google popup; fall back to a full-page redirect.
+  async function googleSignIn() {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(getAuthInstance(), provider);
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment' || code === 'auth/web-storage-unsupported') {
+        await signInWithRedirect(getAuthInstance(), provider);
+      } else throw e;
+    }
+  }
+
   if (user && !user.emailVerified) {
     return (
       <div className="page narrow">
@@ -37,8 +50,9 @@ export default function Login() {
   const auth = getAuthInstance;
   return (
     <div className="page narrow">
-      <h1>Glass Collection</h1>
-      <button disabled={busy} onClick={() => run(() => signInWithPopup(auth(), new GoogleAuthProvider()))}>Continue with Google</button>
+      <img className="logo" src="/icon.svg" alt="" width="88" height="88" />
+      <h1 style={{ textAlign: 'center' }}>Glass Collection</h1>
+      <button disabled={busy} onClick={() => run(googleSignIn)}>Continue with Google</button>
       <p className="muted">or use email and password</p>
       <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></label>
       <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'in' ? 'current-password' : 'new-password'} /></label>

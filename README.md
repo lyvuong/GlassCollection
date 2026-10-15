@@ -1,3 +1,5 @@
+<p align="center"><img src="public/icon.svg" alt="Glass Collection logo" width="120"></p>
+
 # Glass Collection
 
 **A mobile-first PWA for running a neighborhood glass-recycling pickup service** — subscriber list, optimized pickup
@@ -255,6 +257,13 @@ Skip this step and use **Reports → PDF / Share** to send statements manually.
 In-app **Settings** (owner): business name, default fee, currency, statement footer, payment instructions, expense
 categories, helper reporting threshold, mileage rate, photo retention days, email subject/intro, contact email.
 
+## Install on a phone
+
+- **iPhone / iPad (Safari):** open the site in **Safari**, tap **Share**, then **Add to Home Screen**. iOS shows no install
+  banner. Allow **Camera** and **Location** on the first pickup photo. Photos and check-offs queue offline.
+- **Android (Chrome):** menu -> **Install app**.
+- If Google sign-in misbehaves inside an installed iOS app, sign in with email and password instead.
+
 ## Versions and updates
 
 - **Automatic versioning**: [release-please](https://github.com/googleapis/release-please) reads
@@ -276,7 +285,6 @@ npm run dev       # dev server, needs .env.local
 npm test          # billing, pay and route logic (Vitest)
 npm run build     # type-check + production build into dist/
 npm run preview   # serve the production build
-npm run icons     # regenerate PWA icons
 ```
 
 ## Architecture

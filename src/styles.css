@@ -6,6 +6,11 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); }
 .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--green); color: #fff; flex-wrap: wrap; }
+.topbar { padding-top: calc(8px + env(safe-area-inset-top)); padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right)); }
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand img { border-radius: 7px; display: block; }
+.logo { display: block; margin: 8px auto 0; border-radius: 22px; }
+body { padding-bottom: env(safe-area-inset-bottom); }
 .topbar nav { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
 .topbar a { color: #e6f3ec; text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 14px; }
 .topbar a.active { background: rgba(255,255,255,.2); color: #fff; font-weight: 600; }
