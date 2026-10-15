@@ -22,6 +22,10 @@ routes, photo proof at every stop, payments, helper pay, expenses, monthly state
 > [Set up your own copy](#set-up-your-own-copy). There is no shared multi-tenant server and no data leaves your own
 > Firebase project.
 
+### Hello, neighbor! 👋
+
+Every bottle and jar that gets a second life is a small win for our neighborhood, and that is exactly what this project is about. When glass pickup went away, we saw a chance to do something better together: neighbors helping neighbors, glass becoming something new instead of waste, and local teenagers earning their first paychecks while they learn what it takes to run a real service. It is a little bit of recycling, a little bit of community, and a lot of pride in doing good right where we live. Whether you are here to keep our own routes running smoothly or to start a glass-recycling crew in *your* neighborhood, welcome! We hope this makes it easy, and maybe even a little fun, and we are grateful for your help keeping glass out of the landfill and our community strong. 💚♻️
+
 ---
 
 ## Contents
@@ -43,10 +47,20 @@ routes, photo proof at every stop, payments, helper pay, expenses, monthly state
 
 ## The problem it solves
 
-A family collects glass from neighbors once or twice a month. Each subscriber pays a flat monthly fee (default $20)
-**whether or not they put glass out**. The family needs to know who subscribes, drive the shortest route, prove what
-happened at each house, track who paid, pay helpers, track expenses, and produce statements and tax numbers at year end.
-This app does all of that from a phone, with no spreadsheet.
+Our county stopped collecting glass for recycling. Rather than let bottles and jars go to the landfill, we decided to
+work out how to recycle glass ourselves, right in our own neighborhood.
+
+The answer is a small, neighbor-run pickup service that also **creates part-time jobs for teenagers** in the
+neighborhood: they collect glass on a set schedule, earn pay from the subscription fees, and learn to run a real
+small operation (routes, customer service, bookkeeping).
+
+How it works for neighbors: each subscriber pays a flat monthly fee (default $20), **whether or not they put glass
+out**, which keeps the service predictable and pays the helpers and expenses. The team needs to know who subscribes,
+drive an efficient route, prove what happened at each house, track who paid, pay helpers, track expenses, and produce
+statements and tax numbers at year end. This app does all of that from a phone, with no spreadsheet.
+
+Because the problem is local and common, the project is open source: another neighborhood can
+[set up its own copy](#set-up-your-own-copy) and run the same service.
 
 ## Features
 
